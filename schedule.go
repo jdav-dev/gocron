@@ -49,58 +49,55 @@ func OffsetIntervalToSchedule(interval, offset time.Duration) (*Schedule, error)
 	s := new(Schedule)
 
 	imin := interval.Minutes()
-	omin := offset.Minutes()
 
 	if round(imin) < 1 || interval > year {
 		return s, ErrOutOfRange
-	} else if round(omin) >= round(imin) {
+	} else if round(offset.Minutes()) >= round(imin) {
 		return s, ErrInvalidOffset
 	}
 
+	omin := round(offset.Minutes()) % minutesPerHour
 	switch {
 	case round(imin) == 1:
 		return s, nil
 	case imin/minutesPerHour < 1:
-		s.minutes = expandInterval(round(imin), round(omin), minutesPerHour)
+		s.minutes = expandInterval(round(imin), omin, minutesPerHour)
 		return s, nil
-	case omin/minutesPerHour < 1:
-		s.minutes = []int{round(omin)}
 	default:
-		s.minutes = []int{0}
+		offset -= time.Duration(omin) * time.Minute
+		s.minutes = []int{omin}
 	}
 
 	ih := interval.Hours()
-	oh := offset.Hours()
+	oh := round(offset.Hours()) % hoursPerDay
 	switch {
 	case round(ih) == 1:
 		return s, nil
 	case ih/hoursPerDay < 1:
-		s.hours = expandInterval(round(ih), round(oh), hoursPerDay)
+		s.hours = expandInterval(round(ih), oh, hoursPerDay)
 		return s, nil
-	case oh/hoursPerDay < 1:
-		s.hours = []int{round(oh)}
 	default:
-		s.hours = []int{0}
+		offset -= time.Duration(oh) * time.Hour
+		s.hours = []int{oh}
 	}
 
-	id := ih / hoursPerDay
-	od := oh / hoursPerDay
+	id := interval.Hours() / hoursPerDay
+	od := round(offset.Hours()/hoursPerDay) % daysPerMonth
 	switch {
 	case round(id) == 1:
 		return s, nil
 	case id/daysPerWeek < 1:
-		s.daysOfWeek = expandInterval(round(id), round(od), daysPerWeek)
+		s.daysOfWeek = expandInterval(round(id), od, daysPerWeek)
 		return s, nil
 	case id/daysPerWeek == 1:
-		s.daysOfWeek = []int{round(od)}
+		s.daysOfWeek = []int{od}
 		return s, nil
 	case id/daysPerMonth < 1:
-		s.daysOfMonth = expandInterval(round(id), round(od)+1, daysPerMonth)
+		s.daysOfMonth = expandInterval(round(id), od+1, daysPerMonth)
 		return s, nil
-	case od/daysPerMonth < 1:
-		s.daysOfMonth = []int{round(od) + 1}
 	default:
-		s.daysOfMonth = []int{0}
+		offset -= time.Duration(od) * time.Minute
+		s.daysOfMonth = []int{od + 1}
 	}
 
 	imon := id / daysPerMonth
@@ -109,7 +106,7 @@ func OffsetIntervalToSchedule(interval, offset time.Duration) (*Schedule, error)
 	case round(imon) == 1:
 		return s, nil
 	default:
-		s.months = expandInterval(round(imon), round(omon)+1, monthsPerYear)
+		s.months = expandInterval(round(imon), omon+1, monthsPerYear)
 		return s, nil
 	}
 }

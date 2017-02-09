@@ -72,7 +72,7 @@ var (
 		scheduleTest{
 			interval: 24 * time.Hour,
 			offset:   time.Hour + 15*time.Minute,
-			expected: "0 1 * * *",
+			expected: "15 1 * * *",
 		},
 		scheduleTest{
 			interval: 7 * hoursPerDay * time.Hour, // 1 week
